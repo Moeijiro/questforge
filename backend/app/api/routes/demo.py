@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
 from app.db.session import get_db
-from app.db.models import GuildConfig, Quest, MemberProfile, QuestProgress
+from app.models import GuildConfig, Quest, MemberProfile, QuestProgress
 from app.services.progression import calculate_level_from_xp
 
 router = APIRouter()

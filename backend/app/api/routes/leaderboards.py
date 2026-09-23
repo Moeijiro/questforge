@@ -4,7 +4,7 @@ from sqlalchemy import select
 from typing import List, Literal
 
 from app.db.session import get_db
-from app.db.models import MemberProfile
+from app.models import MemberProfile
 from app.schemas.leaderboard import LeaderboardResponse, LeaderboardEntryOut
 
 router = APIRouter()

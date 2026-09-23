@@ -1,6 +1,6 @@
 import pytest
 import json
-from app.db.models import Quest
+from app.models import Quest
 from app.services.progression import get_or_create_profile
 from app.services.quest_engine import process_quest_event
 from tests.conftest import TestingSessionLocal

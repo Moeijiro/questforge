@@ -3,7 +3,7 @@ import datetime
 from typing import List, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from app.db.models import Quest, QuestProgress, MemberProfile
+from app.models import Quest, QuestProgress, MemberProfile
 from app.services.progression import award_xp, get_or_create_profile
 
 async def process_quest_event(

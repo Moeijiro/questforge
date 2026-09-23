@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
 from app.db.session import get_db
-from app.db.models import MemberProfile
+from app.models import MemberProfile
 from app.schemas.profile import ProfileOut, RepRequest, RepResultOut
 from app.services.progression import award_reputation, calculate_level_from_xp
 from app.services.quest_engine import process_quest_event

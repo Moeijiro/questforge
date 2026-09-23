@@ -5,7 +5,7 @@ from sqlalchemy import select, and_
 from typing import List
 
 from app.db.session import get_db
-from app.db.models import MemberProfile, Quest, QuestProgress
+from app.models import MemberProfile, Quest, QuestProgress
 from app.schemas.quest import EventType, QuestCreate, QuestOut, QuestProgressOut
 from app.services.quest_engine import process_quest_event
 

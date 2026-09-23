@@ -4,7 +4,7 @@ import datetime
 from typing import Tuple, Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from app.db.models import MemberProfile, ReputationLog, GuildConfig
+from app.models import MemberProfile, ReputationLog, GuildConfig
 from app.core.config import settings
 
 def calculate_xp_for_level(level: int) -> int:
