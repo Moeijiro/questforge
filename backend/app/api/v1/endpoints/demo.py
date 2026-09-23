@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
 from app.db.session import get_db
-from app.db.models import GuildConfig, Quest, MemberProfile
+from app.db.models import GuildConfig, Quest, MemberProfile, QuestProgress
+from app.services.progression import calculate_level_from_xp
 
 router = APIRouter()
 
@@ -59,7 +60,7 @@ async def seed_demo_quest_data(db: AsyncSession = Depends(get_db)):
         ("u_5", "NeonCoder", 1500, 450, 6, 8, 2, []),
     ]
 
-    for uid, uname, l_xp, s_xp, lvl, rep, streak, badges in sample_profiles:
+    for uid, uname, l_xp, s_xp, _lvl, rep, streak, badges in sample_profiles:
         stmt_p = select(MemberProfile).where(and_(MemberProfile.guild_id == DEMO_GUILD_ID, MemberProfile.user_id == uid))
         res_p = await db.execute(stmt_p)
         if not res_p.scalar_one_or_none():
@@ -70,11 +71,28 @@ async def seed_demo_quest_data(db: AsyncSession = Depends(get_db)):
                 avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={uname}",
                 lifetime_xp=l_xp,
                 season_xp=s_xp,
-                level=lvl,
+                level=calculate_level_from_xp(l_xp)[0],  # derived, so it always matches the XP formula
                 reputation=rep,
                 streak_days=streak,
+                # Active yesterday, so today's activity extends the streak instead of restarting it.
+                last_active_date=(datetime.datetime.utcnow().date() - datetime.timedelta(days=1)).isoformat() if streak else None,
                 badges_json=json.dumps(badges)
             ))
+
+    await db.flush()
+
+    # 4. Quests in flight, so the mission board shows real progress.
+    in_flight = {"u_1": {"Daily Technical Contributor": 3, "Community Guide": 1, "Voice Stage Enthusiast": 30},
+                 "u_2": {"Daily Technical Contributor": 4, "Voice Stage Enthusiast": 12}}
+    quests = {q.title: q for q in (await db.execute(select(Quest).where(Quest.guild_id == DEMO_GUILD_ID))).scalars()}
+    for uid, values in in_flight.items():
+        existing = (await db.execute(select(QuestProgress.id).where(and_(QuestProgress.guild_id == DEMO_GUILD_ID, QuestProgress.user_id == uid)).limit(1))).first()
+        if existing:
+            continue
+        for title, value in values.items():
+            quest = quests[title]
+            db.add(QuestProgress(quest_id=quest.id, guild_id=DEMO_GUILD_ID, user_id=uid, current_value=value,
+                                 is_completed=value >= quest.target_value))
 
     await db.commit()
     return {"message": "QuestForge demo seeded successfully for quest-demo-888"}
