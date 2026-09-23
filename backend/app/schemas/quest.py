@@ -1,14 +1,17 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal, Optional
+
+EventType = Literal["message", "reaction", "voice", "reputation", "manual"]
+Category = Literal["daily", "weekly", "seasonal", "permanent", "event"]
 import datetime
 
 class QuestCreate(BaseModel):
     title: str = Field(..., min_length=2, max_length=255)
     description: str = Field(..., min_length=2)
-    trigger_type: str = Field(..., description="message, reaction, voice, reputation, manual")
-    category: str = Field("daily", description="daily, weekly, seasonal, permanent, event")
-    target_value: int = Field(1, ge=1)
-    reward_xp: int = Field(100, ge=10)
+    trigger_type: EventType
+    category: Category = "daily"
+    target_value: int = Field(1, ge=1, le=10000)
+    reward_xp: int = Field(100, ge=10, le=10000)
     reward_role_id: Optional[str] = None
     reward_role_name: Optional[str] = None
     reward_badge_name: Optional[str] = None

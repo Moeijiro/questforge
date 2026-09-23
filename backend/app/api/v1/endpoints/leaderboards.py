@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Literal
 
 from app.db.session import get_db
 from app.db.models import MemberProfile
@@ -12,8 +12,8 @@ router = APIRouter()
 @router.get("/{guild_id}", response_model=LeaderboardResponse)
 async def get_leaderboard(
     guild_id: str,
-    sort_by: str = Query("lifetime", description="lifetime, season, reputation"),
-    limit: int = Query(50, le=100),
+    sort_by: Literal["lifetime", "season", "reputation"] = Query("lifetime"),
+    limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(MemberProfile).where(MemberProfile.guild_id == guild_id)
