@@ -113,11 +113,9 @@ async def award_reputation(
         raise ValueError("You cannot award reputation to yourself.")
 
     # Check cooldown
-    stmt_from = select(MemberProfile).where(
-        and_(MemberProfile.guild_id == guild_id, MemberProfile.user_id == from_user_id)
-    )
-    res_from = await db.execute(stmt_from)
-    sender = res_from.scalar_one_or_none()
+    # Every giver gets a profile, so the cooldown applies to them too (a giver without a
+    # profile used to skip the cooldown and could hand out unlimited reputation).
+    sender = await get_or_create_profile(guild_id, from_user_id, from_user_id, None, db)
 
     now = datetime.datetime.utcnow()
     cooldown = datetime.timedelta(hours=settings.REP_COOLDOWN_HOURS)
@@ -138,8 +136,7 @@ async def award_reputation(
         raise ValueError("Target user profile not found.")
 
     target.reputation += 1
-    if sender:
-        sender.last_rep_given_at = now
+    sender.last_rep_given_at = now
 
     db.add(ReputationLog(
         guild_id=guild_id,

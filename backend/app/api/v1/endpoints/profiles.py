@@ -6,15 +6,19 @@ from sqlalchemy import select, and_
 from app.db.session import get_db
 from app.db.models import MemberProfile
 from app.schemas.profile import ProfileOut, RepRequest, RepResultOut
-from app.services.progression import (
-    calculate_level_from_xp, award_reputation, get_or_create_profile
-)
+from app.services.progression import award_reputation, calculate_level_from_xp
+from app.services.quest_engine import process_quest_event
 
 router = APIRouter()
 
 @router.get("/{guild_id}/{user_id}", response_model=ProfileOut)
 async def get_member_profile(guild_id: str, user_id: str, db: AsyncSession = Depends(get_db)):
-    prof = await get_or_create_profile(guild_id, user_id, f"User_{user_id[-4:]}", None, db)
+    # Reading a profile must not create one (that filled the leaderboard with "User_xxxx" rows).
+    prof = (await db.execute(select(MemberProfile).where(
+        and_(MemberProfile.guild_id == guild_id, MemberProfile.user_id == user_id)
+    ))).scalar_one_or_none()
+    if prof is None:
+        raise HTTPException(status_code=404, detail="Member profile not found.")
     level, xp_in_level, needed = calculate_level_from_xp(prof.lifetime_xp)
     badges = json.loads(prof.badges_json or "[]")
 
@@ -43,6 +47,8 @@ async def give_reputation(guild_id: str, payload: RepRequest, db: AsyncSession =
             reason=payload.reason,
             db=db
         )
+        # Endorsements count towards the target's "reputation" quests.
+        await process_quest_event(guild_id, target.user_id, "reputation", 1, db)
         return RepResultOut(
             success=True,
             to_user_id=target.user_id,
