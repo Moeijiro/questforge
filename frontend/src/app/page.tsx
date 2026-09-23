@@ -1,76 +1,87 @@
+"use client";
+
 import Link from "next/link";
-import { Swords, Trophy, Sparkles, ArrowRight, ShieldCheck, Heart, Flame, Zap, Award } from "lucide-react";
+import { ArrowRight, Award, CalendarRange, Flame, Hand, Repeat, ScrollText, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { Logo } from "@/components/brand";
+import { LevelRing } from "@/components/quest-bits";
+import { CtaBand, FeatureCard, Hero, HeroButton, HeroCard, InfoCard, Section, SiteFooter, SiteNav } from "@/components/kit/site";
+import { Button } from "@/components/ui/button";
 
-export default function LandingPage() {
+function Preview() {
+  const quests = [
+    { title: "Daily Technical Contributor", value: 3, target: 5, unit: "messages" },
+    { title: "Community Guide", value: 1, target: 2, unit: "endorsements" },
+    { title: "Voice Stage Enthusiast", value: 30, target: 30, unit: "min in voice", done: true },
+  ];
   return (
-    <div className="space-y-24 py-6">
-      {/* Hero Section */}
-      <section className="text-center space-y-6 max-w-3xl mx-auto pt-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-400 text-xs font-mono">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Event-Driven Discord Progression • Rule Engine Architecture</span>
-        </div>
-
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
-          Level up your community with <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">
-            meaningful quests.
-          </span>
-        </h1>
-
-        <p className="text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          Replace noisy XP spam bots with configurable missions, peer reputation endorsements, seasonal resets, and automated Discord role provisioning.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <Link
-            href="/quests"
-            className="w-full sm:w-auto px-6 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold flex items-center justify-center gap-2 transition glow-gold"
-          >
-            Explore Active Quests
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="w-full sm:w-auto px-6 py-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 text-zinc-200 font-medium transition"
-          >
-            View Guild Leaderboard
-          </Link>
-        </div>
-      </section>
-
-      {/* Feature Pillars */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 space-y-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-            <Zap className="w-5 h-5" />
+    <HeroCard>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="flex items-center gap-4 md:flex-col md:items-start">
+          <LevelRing level={19} progress={0.42} />
+          <div className="space-y-1 text-sm">
+            <p className="font-semibold">CyberValkyrie</p>
+            <p className="flex items-center gap-1.5 text-muted-foreground"><Flame className="size-4 text-warn" />12-day streak</p>
+            <p className="flex items-center gap-1.5 text-muted-foreground"><Award className="size-4 text-warn" />2 badges</p>
           </div>
-          <h3 className="font-semibold text-white">Discord Event Engine</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Trigger progress on real community interactions: constructive technical messages, voice stage participation, and event attendance.
-          </p>
         </div>
+        <ul className="space-y-4">
+          {quests.map((q) => (
+            <li key={q.title} className="space-y-1.5">
+              <div className="flex justify-between gap-3 text-sm"><span className="font-medium">{q.title}</span><span className="text-xs text-muted-foreground tabular">{q.value} / {q.target} {q.unit}</span></div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${(q.value / q.target) * 100}%`, background: q.done ? "var(--ok)" : "var(--primary)" }} /></div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </HeroCard>
+  );
+}
 
-        <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 space-y-3">
-          <div className="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-            <Heart className="w-5 h-5" />
-          </div>
-          <h3 className="font-semibold text-white">Peer Reputation Transfer</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Empower members to award <code>/rep</code> with strict 12-hour cooldowns, anti-self-rep safeguards, and daily quotas to eliminate gaming.
-          </p>
-        </div>
+export default function Landing() {
+  return (
+    <>
+      <SiteNav brand={<Logo />} links={[["#how", "How it works"], ["#features", "Features"], ["#use-cases", "Use cases"]]}
+        actions={<Button asChild size="sm"><Link href="/dashboard">Open the demo</Link></Button>} />
+      <main id="main">
+        <Hero eyebrow="Quests for Discord communities"
+          title="Reward the members who actually help."
+          description="QuestForge replaces XP-per-message spam with quests you design — post in the right channels, help others, show up in voice — and pays out XP, roles and badges when they're done. Reputation has cooldowns, so it can't be farmed."
+          actions={<><HeroButton href="/dashboard">See a member&apos;s progress<ArrowRight data-icon="inline-end" /></HeroButton><HeroButton href="#how" variant="outline">How it works</HeroButton></>}
+          note="The demo server has quests in progress, badges and a leaderboard."
+          visual={<Preview />} />
 
-        <div className="p-6 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 space-y-3">
-          <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <Trophy className="w-5 h-5" />
+        <Section id="how" eyebrow="How it works" title="Activity in, rewards out">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FeatureCard icon={ScrollText} title="Design a quest" index={1}>Pick what counts — messages, voice minutes, endorsements — and a goal.</FeatureCard>
+            <FeatureCard icon={Sparkles} title="The bot counts" index={2} delay={0.05}>Every event advances the member&apos;s quests; no commands to run.</FeatureCard>
+            <FeatureCard icon={Award} title="Rewards pay out" index={3} delay={0.1}>XP, a role and a badge the moment the goal is reached.</FeatureCard>
+            <FeatureCard icon={Trophy} title="Levels and boards" index={4} delay={0.15}>Levels follow one XP curve; boards rank all-time, season and reputation.</FeatureCard>
           </div>
-          <h3 className="font-semibold text-white">Seasonal Resets & Roles</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Run competitive 90-day seasons that archive leaderboards while preserving all-time status, rewarding top contributors with exclusive roles.
-          </p>
-        </div>
-      </section>
-    </div>
+        </Section>
+
+        <Section id="features" eyebrow="Built to resist farming" title="Progression people can trust" tinted>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <FeatureCard icon={Hand} title="Reputation with cooldowns">One endorsement per giver per cooldown — including brand-new accounts. No self-rep.</FeatureCard>
+            <FeatureCard icon={ShieldCheck} title="Bounded events" delay={0.05}>An event counts 1–100 units; negative or huge values are refused.</FeatureCard>
+            <FeatureCard icon={Repeat} title="Repeatable quests" delay={0.1}>Daily quests reset after completing, keeping any overflow, and pay out again.</FeatureCard>
+            <FeatureCard icon={Flame} title="Gentle streaks">A missed day restarts the streak at one — no punishing decay.</FeatureCard>
+            <FeatureCard icon={CalendarRange} title="Seasons" delay={0.05}>Season XP ranks the current season while all-time XP keeps levels.</FeatureCard>
+            <FeatureCard icon={Trophy} title="Honest leaderboard" delay={0.1}>Only members with real activity appear — looking someone up never adds them.</FeatureCard>
+          </div>
+        </Section>
+
+        <Section id="use-cases" eyebrow="Use cases" title="For communities that want more than chatter" last>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <InfoCard title="Open-source projects">Reward answering questions and reviewing, not just posting.</InfoCard>
+            <InfoCard title="Gaming guilds" delay={0.05}>Weekly voice-night quests and seasonal ladders with role rewards.</InfoCard>
+            <InfoCard title="Learning communities">Streaks and badges for showing up and helping classmates.</InfoCard>
+            <InfoCard title="Brand communities" delay={0.05}>Event quests that turn launches into something members join in on.</InfoCard>
+          </div>
+          <CtaBand title="Complete a quest in the demo" description="Post a few messages, spend time in voice, get endorsed — and watch XP, badges and the level ring move."
+            action={<Button asChild size="lg" variant="secondary" className="h-11 px-5"><Link href="/dashboard">Open the demo<ArrowRight data-icon="inline-end" /></Link></Button>} />
+        </Section>
+      </main>
+      <SiteFooter brand={<Logo />} right={<><ShieldCheck className="size-3.5" />Reputation can&apos;t be farmed</>} />
+    </>
   );
 }

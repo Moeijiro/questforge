@@ -1,140 +1,70 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Trophy, Flame, Heart, Medal, Sparkles } from "lucide-react";
-import { api, LeaderboardEntry } from "@/lib/api";
+import { useState } from "react";
+import { Crown, Flame, Trophy } from "lucide-react";
+import { Empty, ErrorState, PageTitle, Panel, RowsLoading, Table, Td, Th } from "@/components/kit/ui";
+import { useApi } from "@/hooks/use-api";
+import { api, type Board, DEMO_MEMBER } from "@/lib/api";
+import { nf } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+const BOARDS: { value: Board; label: string }[] = [
+  { value: "lifetime", label: "All-time XP" },
+  { value: "season", label: "This season" },
+  { value: "reputation", label: "Reputation" },
+];
+
+const MEDAL = ["var(--warn)", "oklch(0.7 0.02 260)", "oklch(0.6 0.1 55)"];
 
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [sortBy, setSortBy] = useState<"lifetime" | "season" | "reputation">("lifetime");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadLeaderboard();
-  }, [sortBy]);
-
-  async function loadLeaderboard() {
-    setLoading(true);
-    try {
-      const data = await api.getLeaderboard("quest-demo-888", sortBy);
-      setEntries(data.entries);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [board, setBoard] = useState<Board>("lifetime");
+  const data = useApi(() => api.getLeaderboard(board), board);
+  const entries = data.data?.entries ?? [];
+  const metric = (e: (typeof entries)[number]) => board === "reputation" ? `${e.reputation} rep` : `${nf.format(board === "season" ? e.season_xp : e.lifetime_xp)} XP`;
 
   return (
-    <div className="space-y-8 py-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-amber-400" />
-            Guild Leaderboard
-          </h1>
-          <p className="text-xs text-zinc-400">
-            Real competitive rankings across verified missions, XP, and reputation points.
-          </p>
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-mono">
-          <button
-            onClick={() => setSortBy("lifetime")}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              sortBy === "lifetime" ? "bg-amber-500 text-black font-bold" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            All-Time XP
-          </button>
-          <button
-            onClick={() => setSortBy("season")}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              sortBy === "season" ? "bg-amber-500 text-black font-bold" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Season 1 XP
-          </button>
-          <button
-            onClick={() => setSortBy("reputation")}
-            className={`px-3 py-1.5 rounded-lg transition ${
-              sortBy === "reputation" ? "bg-amber-500 text-black font-bold" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Reputation
-          </button>
-        </div>
+    <>
+      <PageTitle title="Leaderboard" description="Ranked from real activity — levels come from XP, never set by hand." />
+      <div className="mb-4 inline-flex rounded-lg border bg-card p-0.5" role="tablist" aria-label="Board">
+        {BOARDS.map((b) => (
+          <button key={b.value} type="button" role="tab" aria-selected={board === b.value} onClick={() => setBoard(b.value)}
+            className={cn("rounded-md px-3 py-1.5 text-sm transition-colors", board === b.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{b.label}</button>
+        ))}
       </div>
-
-      {loading ? (
-        <div className="py-24 text-center text-xs text-zinc-400 font-mono">Calculating rank positions...</div>
-      ) : entries.length === 0 ? (
-        <div className="py-16 text-center border border-dashed border-zinc-800 rounded-xl text-xs text-zinc-500 font-mono">
-          No leaderboard entries recorded.
-        </div>
-      ) : (
-        <div className="border border-zinc-800 rounded-xl bg-zinc-900/40 overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-950 border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
-              <tr>
-                <th className="py-3 px-4 w-12 text-center">Rank</th>
-                <th className="py-3 px-4">Member</th>
-                <th className="py-3 px-4">Level</th>
-                <th className="py-3 px-4 font-mono">XP Score</th>
-                <th className="py-3 px-4">Reputation</th>
-                <th className="py-3 px-4">Streak</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/60">
-              {entries.map((entry) => {
-                const isTop1 = entry.rank === 1;
-                const isTop2 = entry.rank === 2;
-                const isTop3 = entry.rank === 3;
-
-                return (
-                  <tr key={entry.user_id} className="hover:bg-zinc-900/80 transition">
-                    <td className="py-3 px-4 text-center font-bold font-mono">
-                      {isTop1 && <span className="text-yellow-400 text-base">🥇</span>}
-                      {isTop2 && <span className="text-zinc-300 text-base">🥈</span>}
-                      {isTop3 && <span className="text-amber-600 text-base">🥉</span>}
-                      {!isTop1 && !isTop2 && !isTop3 && (
-                        <span className="text-zinc-500">#{entry.rank}</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 flex items-center gap-2.5">
-                      {entry.avatar_url ? (
-                        <img src={entry.avatar_url} alt="" className="w-7 h-7 rounded-full bg-zinc-800" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-xs">
-                          {entry.username.slice(0, 1)}
-                        </div>
-                      )}
-                      <span className="font-semibold text-white">{entry.username}</span>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-zinc-300">
-                      <span className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-amber-400 font-bold">
-                        LVL {entry.level}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-white">
-                      {sortBy === "season" ? entry.season_xp.toLocaleString() : entry.lifetime_xp.toLocaleString()} XP
-                    </td>
-                    <td className="py-3 px-4 font-mono text-rose-400 font-bold flex items-center gap-1">
-                      <Heart className="w-3.5 h-3.5 fill-rose-500/20" />
-                      +{entry.reputation}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-orange-400 flex items-center gap-1">
-                      <Flame className="w-3.5 h-3.5" />
-                      {entry.streak_days}d
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : (
+        <>
+          {entries.length >= 3 ? (
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {entries.slice(0, 3).map((e, i) => (
+                <div key={e.user_id} className={cn("flex items-center gap-3 rounded-xl border bg-card px-5 py-4", i === 0 && "border-warn/40 bg-warn/5")}>
+                  <span className="flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white" style={{ background: MEDAL[i] }}>{i === 0 ? <Crown className="size-5" /> : i + 1}</span>
+                  <span className="min-w-0"><span className="block truncate font-semibold">{e.username}</span><span className="text-sm text-muted-foreground">{metric(e)} · level {e.level}</span></span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <Panel bodyClassName="p-0">
+            {!data.data ? <RowsLoading /> : entries.length === 0 ? <Empty icon={Trophy} title="Nobody on the board yet" description="Load the demo from My progress." /> : (
+              <Table>
+                <thead><tr><Th className="w-14">Rank</Th><Th>Member</Th><Th className="text-right">Level</Th><Th className="text-right">All-time XP</Th><Th className="text-right">Season XP</Th><Th className="text-right">Reputation</Th><Th className="text-right">Streak</Th></tr></thead>
+                <tbody>
+                  {entries.map((e) => (
+                    <tr key={e.user_id} className={e.user_id === DEMO_MEMBER.id ? "bg-accent/60" : undefined}>
+                      <Td className="font-mono text-xs text-muted-foreground">#{e.rank}</Td>
+                      <Td><span className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{e.username.slice(0, 2).toUpperCase()}</span><span className="font-medium">{e.username}</span>{e.user_id === DEMO_MEMBER.id ? <span className="text-xs text-muted-foreground">(you)</span> : null}</span></Td>
+                      <Td className="text-right font-medium tabular">{e.level}</Td>
+                      <Td className={cn("text-right tabular", board === "lifetime" && "font-semibold")}>{nf.format(e.lifetime_xp)}</Td>
+                      <Td className={cn("text-right tabular", board === "season" && "font-semibold")}>{nf.format(e.season_xp)}</Td>
+                      <Td className={cn("text-right tabular", board === "reputation" && "font-semibold")}>{e.reputation}</Td>
+                      <Td className="text-right tabular"><span className="inline-flex items-center gap-1">{e.streak_days}<Flame className="size-3.5 text-warn" /></span></Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </Panel>
+        </>
       )}
-    </div>
+    </>
   );
 }

@@ -1,121 +1,117 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Swords, Trophy, Sparkles, Shield, ArrowRight, Heart, Flame } from "lucide-react";
-import { api, MemberProfile } from "@/lib/api";
-import ProfileCard from "@/components/ProfileCard";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Award, CheckCircle2, Flame, Hand, Headphones, MessageSquare, Sparkles, Star, Trophy } from "lucide-react";
+import { LevelRing, QuestMeta, Rewards } from "@/components/quest-bits";
+import { Empty, ErrorState, PageLoading, PageTitle, Panel, Stat } from "@/components/kit/ui";
+import { Button } from "@/components/ui/button";
+import { useApi } from "@/hooks/use-api";
+import { api, DEMO_GUILD_NAME, DEMO_MEMBER, type Reward, type Trigger } from "@/lib/api";
+import { nf, TRIGGER } from "@/lib/format";
 
-export default function DashboardPage() {
-  const [profile, setProfile] = useState<MemberProfile | null>(null);
-  const [seeding, setSeeding] = useState(false);
-  const [loading, setLoading] = useState(true);
+export default function ProgressPage() {
+  const data = useApi(() => Promise.all([api.getProfile(DEMO_MEMBER.id), api.getProgress(DEMO_MEMBER.id)]), "progress");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
-    setLoading(true);
-    try {
-      const data = await api.getProfile("quest-demo-888", "u_1");
-      setProfile(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  function announce(rewards: Reward[]) {
+    for (const r of rewards) {
+      toast.success(`Quest complete: ${r.quest_title}`, { description: `+${r.reward_xp} XP${r.reward_badge ? ` · badge “${r.reward_badge}”` : ""}${r.did_level_up ? ` · level ${r.new_level}!` : ""}` });
     }
   }
 
-  async function handleSeedDemo() {
-    setSeeding(true);
+  async function act(action: () => Promise<Reward[] | void>, success: string) {
+    setBusy(true);
     try {
-      await api.seedDemo();
-      await loadProfile();
+      const rewards = await action();
+      if (rewards && rewards.length) announce(rewards);
+      else toast.success(success);
+      data.reload();
     } catch (err) {
-      alert("Failed to seed demo data.");
+      toast.error((err as Error).message);
     } finally {
-      setSeeding(false);
+      setBusy(false);
     }
   }
+
+  const activity = (trigger: Trigger, value: number, label: string) =>
+    act(async () => (await api.sendEvent(DEMO_MEMBER.id, trigger, value)).rewards_unlocked, label);
+
+  async function seed() {
+    await act(async () => { await api.seedDemo(); }, "Demo server loaded");
+  }
+
+  if (data.error) {
+    return (
+      <>
+        <PageTitle title="My progress" />
+        {data.error.includes("not found") ? (
+          <div className="rounded-xl border bg-card"><Empty icon={Trophy} title="No progress yet" description="Load the demo server to see a member with levels, quests and badges." action={<Button onClick={seed} disabled={busy}><Sparkles />Load demo</Button>} /></div>
+        ) : <ErrorState message={data.error} onRetry={data.reload} />}
+      </>
+    );
+  }
+  if (!data.data) return <PageLoading />;
+  const [p, progress] = data.data;
+  const pct = p.xp_for_next_level ? p.xp_in_level / p.xp_for_next_level : 0;
 
   return (
-    <div className="space-y-8 py-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Shield className="w-6 h-6 text-amber-400" />
-            Progression Admin Hub
-          </h1>
-          <p className="text-xs text-zinc-400">
-            Telemetry and progression control for <strong className="text-white">Apex Community League</strong>.
-          </p>
-        </div>
+    <>
+      <PageTitle title="My progress" description={<>{p.username} on <strong className="font-medium text-foreground">{DEMO_GUILD_NAME}</strong>.</>}
+        actions={<Button variant="outline" onClick={seed} disabled={busy}><Sparkles />Load demo</Button>} />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSeedDemo}
-            disabled={seeding}
-            className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs text-zinc-300 flex items-center gap-1.5 transition disabled:opacity-50"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            {seeding ? "Seeding..." : "Seed Demo Quests & XP"}
-          </button>
-          <Link
-            href="/quests"
-            className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition glow-gold"
-          >
-            <Swords className="w-3.5 h-3.5" />
-            Mission Directives
-          </Link>
+      <div className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))]">
+        <div className="flex items-center gap-5 rounded-xl border bg-card px-5 py-4">
+          <LevelRing level={p.level} progress={pct} />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Next level</p>
+            <p className="mt-1 text-xl font-semibold tabular">{nf.format(p.xp_in_level)} <span className="text-sm font-normal text-muted-foreground">/ {nf.format(p.xp_for_next_level)} XP</span></p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{nf.format(p.lifetime_xp)} XP all-time</p>
+          </div>
         </div>
+        <Stat label="Season XP" icon={Sparkles} value={nf.format(p.season_xp)} />
+        <Stat label="Reputation" icon={Star} value={p.reputation} hint="Endorsements from members" />
+        <Stat label="Daily streak" icon={Flame} value={`${p.streak_days} day${p.streak_days === 1 ? "" : "s"}`} tone={p.streak_days >= 7 ? "warn" : undefined} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-        {/* Profile Card Preview */}
-        <div className="md:col-span-6 space-y-3">
-          <span className="text-xs font-mono uppercase text-zinc-400">Discord Member Card Preview</span>
-          {profile && <ProfileCard profile={profile} />}
-        </div>
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <Panel title="Quests" description="Progress towards every active quest.">
+          <ul className="divide-y">
+            {progress.map((q) => (
+              <li key={q.quest.id} className="space-y-2.5 px-5 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 font-medium">{q.is_completed ? <CheckCircle2 className="size-4 text-ok" /> : null}{q.quest.title}</p>
+                    <p className="text-sm text-muted-foreground">{q.quest.description}</p>
+                  </div>
+                  <QuestMeta quest={q.quest} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${q.percentage}%`, background: q.is_completed ? "var(--ok)" : "var(--primary)" }} /></div>
+                  <span className="w-28 text-right text-xs text-muted-foreground tabular">{q.quest.trigger_type === "manual" ? (q.is_completed ? "awarded" : "staff-awarded") : `${q.current_value} / ${TRIGGER[q.quest.trigger_type]?.unit(q.target_value) ?? q.target_value}`}</span>
+                </div>
+                <Rewards quest={q.quest} />
+              </li>
+            ))}
+          </ul>
+        </Panel>
 
-        {/* Quick Hub Navigation */}
-        <div className="md:col-span-6 space-y-4">
-          <span className="text-xs font-mono uppercase text-zinc-400">Quick Modules</span>
-
-          <Link
-            href="/quests"
-            className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-                <Swords className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-white group-hover:text-amber-400 transition">Missions Engine</h4>
-                <p className="text-xs text-zinc-400">Configure daily, weekly, and seasonal quest triggers.</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition" />
-          </Link>
-
-          <Link
-            href="/leaderboard"
-            className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-                <Trophy className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-white group-hover:text-purple-400 transition">Competitive Leaderboards</h4>
-                <p className="text-xs text-zinc-400">Filter rankings across Season XP, Lifetime XP, and Rep.</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition" />
-          </Link>
+        <div className="space-y-5">
+          <Panel title="Simulate activity" description="What the bot records as this member chats. Quests complete and pay out automatically." bodyClassName="grid grid-cols-1 gap-2 p-4">
+            <Button variant="outline" disabled={busy} onClick={() => activity("message", 1, "+1 message counted")} className="justify-start"><MessageSquare />Post a message</Button>
+            <Button variant="outline" disabled={busy} onClick={() => activity("voice", 10, "+10 voice minutes counted")} className="justify-start"><Headphones />Spend 10 min in voice</Button>
+            <Button variant="outline" disabled={busy} onClick={() => act(async () => { await api.giveRep("u_2", DEMO_MEMBER.id, "Helped with a bug"); }, "RustaceanMax endorsed you")} className="justify-start"><Hand />Get endorsed by RustaceanMax</Button>
+            <p className="text-xs text-muted-foreground">Endorsements have a cooldown per giver, so the third button works once.</p>
+          </Panel>
+          <Panel title="Badges">
+            {p.badges.length === 0 ? <Empty title="No badges yet" description="Complete quests that award badges." /> : (
+              <ul className="flex flex-wrap gap-2 p-4">
+                {p.badges.map((b) => <li key={b} className="inline-flex items-center gap-1.5 rounded-lg border bg-warn/10 px-2.5 py-1.5 text-sm"><Award className="size-4 text-warn" />{b}</li>)}
+              </ul>
+            )}
+          </Panel>
         </div>
       </div>
-    </div>
+    </>
   );
 }
