@@ -1,5 +1,7 @@
 # QuestForge
 
+**Portfolio case study:** [moeijiro.github.io/portfolio/projects/questforge](https://moeijiro.github.io/portfolio/projects/questforge/) · **Live demo:** not hosted — the app runs locally in a few commands (see below).
+
 **Reward the members who actually help.** QuestForge replaces XP-per-message spam with
 quests you design: post in the right channels, help others, show up in voice. When a
 quest's goal is reached, it pays out XP, a role and a badge. Levels follow one XP curve,
